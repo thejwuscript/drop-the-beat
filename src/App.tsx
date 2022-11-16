@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import soundfile from "./assets/wav/drum snare.wav";
 
 function App() {
-  //const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [source, setSource] = useState<AudioBufferSourceNode | null>(null);
   const [isPlaying, setIsPlaying] = useState<Boolean>(false);
+  const [bpm, setBpm] = useState(0);
+
   const audio = new Audio(soundfile);
 
   useEffect(() => {
@@ -19,13 +20,28 @@ function App() {
 
   const playSound = () => {
     if (audioContext) {
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      source.loop = true;
-      source.start(0);
+      let startTime = audioContext.currentTime + 1;
+      let array = [];
 
-      setSource(source);
+      for (let i = 0; i < 20; i++) {
+        array.push(startTime + 0.8);
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.start(startTime + 0.8);
+        startTime += 0.8;
+      }
+
+      let testStr = "beat";
+
+      while (array.length > 0) {
+        const nextTime = array[0];
+        if (nextTime < audioContext.currentTime) {
+          console.log(testStr);
+          testStr += "s";
+          array.shift();
+        }
+      }
     }
   };
 
@@ -51,8 +67,13 @@ function App() {
     setIsPlaying(false);
   };
 
+  const handleBpmChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setBpm(Number(event.target.value));
+  }
+
   return (
     <div className="App">
+      <input type="number" min={60} max={200} value={bpm} onChange={handleBpmChange} />
       <button onClick={handlePlayClick}>Play</button>
       <button onClick={handleStopClick}>Stop</button>
     </div>
