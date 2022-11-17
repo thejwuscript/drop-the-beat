@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
 import soundfile from "./assets/wav/drum snare.wav";
 
+interface Node {
+  source: AudioBufferSourceNode;
+  time: Number;
+}
+
 function App() {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [analyzer, setAnalyzer] = useState<AnalyserNode>();
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
-  const [timeStamps, setTimeStamps] = useState<Number[]>([]);
+  const [sourceDetails, setSourceDetails] = useState<Node[]>([]);
   const [isPlaying, setIsPlaying] = useState<Boolean>(false);
   const [bpm, setBpm] = useState(120);
 
@@ -20,27 +25,20 @@ function App() {
   }, [audioBuffer, analyzer]);
 
   useEffect(() => {
-    let intervalId;
+    let intervalId: ReturnType<typeof setInterval>;
+    let copied: Node[] = [];
 
-    if (timeStamps.length === 10) {
-      
-      let copied = timeStamps.slice();
+    if (sourceDetails.length === 10) {
+      copied = sourceDetails.slice();
       intervalId = setInterval(() => {
-        if (audioContext && (copied[0] < audioContext.currentTime)) {
+        if (audioContext && copied[0].time < audioContext.currentTime) {
           console.log("beats");
           copied.shift();
+          if (copied.length < 1) clearInterval(intervalId);
         }
-      }, 1);
+      }, 0);
     }
-    if (timeStamps.length < 1) clearInterval(intervalId);
-  }, [timeStamps]);
-
-  // const showText = (array: Number[]) => {
-  //   if (audioContext && (array[0] < audioContext.currentTime)) {
-  //     console.log("beats");
-  //     array.shift();
-  //   }
-  // }
+  }, [sourceDetails]);
 
   const playSound = () => {
     if (audioContext && analyzer) {
@@ -49,20 +47,15 @@ function App() {
       let rate = 60 / bpm;
 
       for (let i = 0; i < 10; i++) {
-        array.push(startTime + rate);
         const source = audioContext.createBufferSource();
         source.buffer = audioBuffer;
         source.connect(analyzer);
         analyzer.connect(audioContext.destination);
+        array.push({ source: source, time: startTime + rate });
         source.start(startTime + rate);
         startTime += rate;
       }
-      setTimeStamps(array);
-      // console.log(analyzer.fftSize);
-      // const bufferLength = analyzer.frequencyBinCount;
-      // const dataArray = new Uint8Array(bufferLength);
-      // console.log(dataArray.filter(value => value !== 0));
-      // analyzer.getByteTimeDomainData(dataArray);
+      setSourceDetails(array);
     }
   };
 
@@ -88,6 +81,8 @@ function App() {
 
   const handleStopClick = () => {
     setIsPlaying(false);
+    const copiedSourceDetails = sourceDetails.slice();
+    copiedSourceDetails.forEach(obj => obj.source.stop());
   };
 
   const handleBpmChange = (event: React.ChangeEvent<HTMLInputElement>) => {
