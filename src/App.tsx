@@ -4,9 +4,9 @@ import soundfile from "./assets/wav/drum snare.wav";
 function App() {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
-  const [source, setSource] = useState<AudioBufferSourceNode | null>(null);
+  const [timers, setTimers] = useState<Number[]>([]);
   const [isPlaying, setIsPlaying] = useState<Boolean>(false);
-  const [bpm, setBpm] = useState(0);
+  const [bpm, setBpm] = useState(120);
 
   const audio = new Audio(soundfile);
 
@@ -18,30 +18,37 @@ function App() {
     playSound();
   }, [audioBuffer])
 
-  const playSound = () => {
+  useEffect(() => {
+    let testStr = "beat";
+    let copied = timers.slice();
     if (audioContext) {
-      let startTime = audioContext.currentTime + 1;
-      let array = [];
-
-      for (let i = 0; i < 20; i++) {
-        array.push(startTime + 0.8);
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContext.destination);
-        source.start(startTime + 0.8);
-        startTime += 0.8;
-      }
-
-      let testStr = "beat";
-
-      while (array.length > 0) {
-        const nextTime = array[0];
+      while (copied.length > 0) {
+        const nextTime = copied[0];
         if (nextTime < audioContext.currentTime) {
           console.log(testStr);
           testStr += "s";
-          array.shift();
+          copied.shift();
         }
       }
+    }
+  }, [timers])
+
+  const playSound = () => {
+    if (audioContext) {
+      let startTime = audioContext.currentTime + 0.2;
+      let array = [];
+      let rate = 60 / bpm;
+
+      for (let i = 0; i < 10; i++) {
+        array.push(startTime + rate);
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.start(startTime + rate);
+        startTime += rate;
+      };
+
+      setTimers(array); 
     }
   };
 
@@ -63,7 +70,7 @@ function App() {
   };
 
   const handleStopClick = () => {
-    if (source) source.stop();
+    setTimers([]);
     setIsPlaying(false);
   };
 
