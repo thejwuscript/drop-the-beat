@@ -25,19 +25,20 @@ function App() {
   }, [audioBuffer, analyzer]);
 
   useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval>;
-    let copied: Node[] = [];
+    let copied = sourceDetails.slice();
+    let text = "beat";
+    let intervalId = setInterval(() => {
+      
+      if (audioContext && copied[0] && copied[0].time < audioContext.currentTime) {
+        console.log(text);
+        text += "s";
+        copied.shift();
+        if (copied.length < 1) clearInterval(intervalId);
+      }
+    }, 0);
 
-    if (sourceDetails.length === 10) {
-      copied = sourceDetails.slice();
-      intervalId = setInterval(() => {
-        if (audioContext && copied[0].time < audioContext.currentTime) {
-          console.log("beats");
-          copied.shift();
-          if (copied.length < 1) clearInterval(intervalId);
-        }
-      }, 0);
-    }
+    return () => clearInterval(intervalId);
+
   }, [sourceDetails]);
 
   const playSound = () => {
@@ -75,6 +76,11 @@ function App() {
   };
 
   const handlePlayClick = () => {
+    if (bpm < 60 || bpm > 200) {
+      const input = document.querySelector("input");
+      input && input.reportValidity();
+      return;
+    }
     if (!audioContext) initialPlay();
     else if (!isPlaying) playSound();
   };
@@ -82,25 +88,34 @@ function App() {
   const handleStopClick = () => {
     setIsPlaying(false);
     const copiedSourceDetails = sourceDetails.slice();
-    copiedSourceDetails.forEach(obj => obj.source.stop());
+    copiedSourceDetails.forEach((obj) => obj.source.stop());
+    setSourceDetails([]);
   };
 
   const handleBpmChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setBpm(Number(event.target.value));
+    let num = parseInt(event.target.value, 10);
+    if (isNaN(num)) return setBpm(0);
+
+    if (num < 60 || num > 200) {
+      event.target.reportValidity();
+    }
+    setBpm(num);
   };
 
   return (
     <div className="App">
-      <input
+      <h1 id="text">Drop the Beat</h1>
+      <p>Open the console to see the beats!</p>
+      BPM (limit 60 - 200): <input
         type="number"
         min={60}
         max={200}
-        value={bpm}
+        value={bpm.toString()}
         onChange={handleBpmChange}
-      />
+      /><br />
       <button onClick={handlePlayClick}>Play</button>
       <button onClick={handleStopClick}>Stop</button>
-      <p id="text">Drop the Beat</p>
+      
     </div>
   );
 }
